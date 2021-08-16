@@ -1,4 +1,8 @@
 import {
+  SavedMonth,
+  SavedMonthDocument,
+} from './../../../schemas/saved-month.schema';
+import {
   FixedOutcome,
   FixedOutcomeDocument,
 } from './../../../schemas/fix.schema';
@@ -18,6 +22,8 @@ export class CalculateBalanceService {
     private balanceRepository: Model<BalanceDocument>,
     @InjectModel(FixedOutcome.name)
     private fixedOutcomeRepository: Model<FixedOutcomeDocument>,
+    @InjectModel(SavedMonth.name)
+    private savedMonthRepository: Model<SavedMonthDocument>,
   ) {}
   async execute({ customerId, month }) {
     const salario = await this.salarioRepository.findOne({
@@ -39,13 +45,37 @@ export class CalculateBalanceService {
       dateToMonths = subMonths(today, Math.abs(month));
     }
 
-    const balance = await this.balanceRepository.find({
+    const savedValue = await this.savedMonthRepository.findOne({
       customerId,
       month: dateToMonths.getMonth() + 1,
       year: dateToMonths.getFullYear(),
     });
 
-    let totalIncome = salario.value;
+    let balance: BalanceDocument[];
+    let fixedOutcome;
+    let wage;
+
+    if (savedValue) {
+      balance = savedValue.balance;
+      fixedOutcome = savedValue.fixedOutcome;
+      wage = savedValue.wage;
+    } else {
+      balance = await this.balanceRepository.find({
+        customerId,
+        month: dateToMonths.getMonth() + 1,
+        year: dateToMonths.getFullYear(),
+      });
+
+      fixedOutcome = await this.fixedOutcomeRepository.find({
+        customerId,
+      });
+
+      console.log('salario.value');
+      console.log(salario.value);
+      wage = salario.value;
+    }
+
+    let totalIncome = wage;
     let totalOutcome = 0;
     const fixedOutcomeArray = [];
     const income = [];
@@ -61,17 +91,13 @@ export class CalculateBalanceService {
       }
     }
 
-    const fixedOutcome = await this.fixedOutcomeRepository.find({
-      customerId,
-    });
-
     for (const eachFixedOutcome of fixedOutcome) {
       totalOutcome += eachFixedOutcome.value;
       fixedOutcomeArray.push(eachFixedOutcome);
     }
 
     return {
-      salary: salario.value,
+      salary: wage,
       totalIncome,
       totalOutcome,
       totalAvailable: totalIncome - totalOutcome,

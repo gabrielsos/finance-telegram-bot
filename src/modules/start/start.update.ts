@@ -1,3 +1,5 @@
+import { SaveMonthService } from './services/save-month.service';
+import { ResetService } from './services/reset.service';
 import { DeleteFixedOutcomeService } from './services/delete-fixed-outcome.service';
 import { ListFixedOutcomeService } from './services/list-fixed-outcome.service';
 import { InsertFixedOutcomeService } from './services/insert-fixed-outcome.service';
@@ -20,6 +22,8 @@ export class StartUpdate {
     private insertFixedOutcomeService: InsertFixedOutcomeService,
     private listFixedOutcomeService: ListFixedOutcomeService,
     private deleteFixedOutcomeService: DeleteFixedOutcomeService,
+    private resetService: ResetService,
+    private saveMonthService: SaveMonthService,
   ) {}
   @Start()
   async startCommand(ctx: Context) {
@@ -36,13 +40,32 @@ Comece cadastrando seu Wage, ele será usado como padrão em todos os meses.
 Comandos disponiveis: 
   * Registrar Wage: /salario [valor]
   * Registrar compra parcelada no cartão de crédito: /cc [valor] [parcelas]
-  * Registrar entrada de Value: /income [valor] [*mes]
-  * Registrar de Value: /income [valor] [*mes]
+  * Registrar entrada de valor: /income [valor] [*mes]
+  * Registrar saída de valor: /outcome [valor] [*mes]
+  * Registrar valor fixo: /fixed [valor] [*mes]
   * Listas Balance: /balance [*mes]
       
   [*] = Parametro opcional
   [mes] = Número para acrescentar ou subtrair do mês atual, se não enviado mês atual é o padrão
     `);
+  }
+
+  @Command('reset')
+  async reset(ctx) {
+    const customerId = ctx.message.from.id;
+    await this.resetService.execute({ customerId });
+
+    await ctx.reply('Dados resetados');
+  }
+
+  @Command('save')
+  async commandSave(ctx) {
+    const customerId = ctx.message.from.id;
+    const month = ctx.message.text.split('save')[1];
+
+    await this.saveMonthService.execute({ customerId, month });
+
+    await ctx.reply(`Dados do mês ${month} finalizados`);
   }
 
   @Command('detailed')

@@ -1,3 +1,9 @@
+import { SaveMonthService } from './services/save-month.service';
+import {
+  SavedMonth,
+  SavedMonthSchema,
+} from './../../schemas/saved-month.schema';
+import { ResetService } from './services/reset.service';
 import { DeleteFixedOutcomeService } from './services/delete-fixed-outcome.service';
 import { ListFixedOutcomeService } from './services/list-fixed-outcome.service';
 import { InsertFixedOutcomeService } from './services/insert-fixed-outcome.service';
@@ -28,6 +34,10 @@ import { StartUpdate } from './start.update';
         name: FixedOutcome.name,
         schema: FixedOutcomeSchema,
       },
+      {
+        name: SavedMonth.name,
+        schema: SavedMonthSchema,
+      },
     ]),
   ],
   providers: [
@@ -40,6 +50,8 @@ import { StartUpdate } from './start.update';
     InsertFixedOutcomeService,
     ListFixedOutcomeService,
     DeleteFixedOutcomeService,
+    ResetService,
+    SaveMonthService,
   ],
 })
 export class StartModule {}
