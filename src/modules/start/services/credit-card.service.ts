@@ -13,7 +13,8 @@ export class CreditCardService {
     private calculateBalanceService: CalculateBalanceService,
   ) {}
   async execute({ installments, customerId, value, description }) {
-    const today = new Date();
+    let today = new Date();
+    today = addMonths(today, 1);
     const installmentValue = value / installments;
 
     for (let i = 0; i < installments; i++) {
