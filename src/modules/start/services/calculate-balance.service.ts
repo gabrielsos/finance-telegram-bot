@@ -1,3 +1,7 @@
+import {
+  FixedOutcome,
+  FixedOutcomeDocument,
+} from './../../../schemas/fix.schema';
 import { Balance, BalanceDocument } from './../../../schemas/balance.schema';
 import { Salario, SalarioDocument } from './../../../schemas/salario.schema';
 import { InjectModel } from '@nestjs/mongoose';
@@ -12,6 +16,8 @@ export class CalculateBalanceService {
     private salarioRepository: Model<SalarioDocument>,
     @InjectModel(Balance.name)
     private balanceRepository: Model<BalanceDocument>,
+    @InjectModel(FixedOutcome.name)
+    private fixedOutcomeRepository: Model<FixedOutcomeDocument>,
   ) {}
   async execute({ customerId, month }) {
     const salario = await this.salarioRepository.findOne({
@@ -41,7 +47,7 @@ export class CalculateBalanceService {
 
     let totalIncome = salario.value;
     let totalOutcome = 0;
-    const outcome = [];
+    const fixedOutcomeArray = [];
     const income = [];
 
     for (const eachBalance of balance) {
@@ -52,8 +58,16 @@ export class CalculateBalanceService {
 
       if (eachBalance.type === 'outcome') {
         totalOutcome += eachBalance.value;
-        outcome.push(eachBalance);
       }
+    }
+
+    const fixedOutcome = await this.fixedOutcomeRepository.find({
+      customerId,
+    });
+
+    for (const eachFixedOutcome of fixedOutcome) {
+      totalOutcome += eachFixedOutcome.value;
+      fixedOutcomeArray.push(eachFixedOutcome);
     }
 
     return {
@@ -63,7 +77,7 @@ export class CalculateBalanceService {
       totalAvailable: totalIncome - totalOutcome,
       date: dateToMonths,
       income,
-      outcome,
+      fixedOutcomeArray,
       balance,
     };
   }

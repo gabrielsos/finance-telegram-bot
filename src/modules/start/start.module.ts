@@ -1,3 +1,7 @@
+import { DeleteFixedOutcomeService } from './services/delete-fixed-outcome.service';
+import { ListFixedOutcomeService } from './services/list-fixed-outcome.service';
+import { InsertFixedOutcomeService } from './services/insert-fixed-outcome.service';
+import { FixedOutcome, FixedOutcomeSchema } from './../../schemas/fix.schema';
 import { CreditCardService } from './services/credit-card.service';
 import { SalaryService } from './services/salary.service';
 import { OutcomeService } from './services/outcome.service';
@@ -20,6 +24,10 @@ import { StartUpdate } from './start.update';
         name: Balance.name,
         schema: BalanceSchema,
       },
+      {
+        name: FixedOutcome.name,
+        schema: FixedOutcomeSchema,
+      },
     ]),
   ],
   providers: [
@@ -29,6 +37,9 @@ import { StartUpdate } from './start.update';
     OutcomeService,
     SalaryService,
     CreditCardService,
+    InsertFixedOutcomeService,
+    ListFixedOutcomeService,
+    DeleteFixedOutcomeService,
   ],
 })
 export class StartModule {}

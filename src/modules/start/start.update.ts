@@ -1,13 +1,13 @@
+import { DeleteFixedOutcomeService } from './services/delete-fixed-outcome.service';
+import { ListFixedOutcomeService } from './services/list-fixed-outcome.service';
+import { InsertFixedOutcomeService } from './services/insert-fixed-outcome.service';
 import { CreditCardService } from './services/credit-card.service';
 import { SalaryService } from './services/salary.service';
 import { OutcomeService } from './services/outcome.service';
 import { IncomeService } from './services/income.service';
 import { CalculateBalanceService } from './services/calculate-balance.service';
-import { Balance, BalanceDocument } from './../../schemas/balance.schema';
 import { Update, Start, Help, Command } from 'nestjs-telegraf';
 import { Context } from '../../interfaces/context.interface';
-import { Model } from 'mongoose';
-import { InjectModel } from '@nestjs/mongoose';
 
 @Update()
 export class StartUpdate {
@@ -17,6 +17,9 @@ export class StartUpdate {
     private outcomeService: OutcomeService,
     private salaryService: SalaryService,
     private creditCardService: CreditCardService,
+    private insertFixedOutcomeService: InsertFixedOutcomeService,
+    private listFixedOutcomeService: ListFixedOutcomeService,
+    private deleteFixedOutcomeService: DeleteFixedOutcomeService,
   ) {}
   @Start()
   async startCommand(ctx: Context) {
@@ -28,14 +31,14 @@ export class StartUpdate {
   @Help()
   async helpCommand(ctx: Context) {
     await ctx.reply(`
-Comece cadastrando seu salário, ele será usado como padrão em todos os meses.
+Comece cadastrando seu Wage, ele será usado como padrão em todos os meses.
     
 Comandos disponiveis: 
-  * Registrar salário: /salario [valor]
+  * Registrar Wage: /salario [valor]
   * Registrar compra parcelada no cartão de crédito: /cc [valor] [parcelas]
-  * Registrar entrada de valor: /income [valor] [*mes]
-  * Registrar de valor: /income [valor] [*mes]
-  * Listas balanço: /balance [*mes]
+  * Registrar entrada de Value: /income [valor] [*mes]
+  * Registrar de Value: /income [valor] [*mes]
+  * Listas Balance: /balance [*mes]
       
   [*] = Parametro opcional
   [mes] = Número para acrescentar ou subtrair do mês atual, se não enviado mês atual é o padrão
@@ -48,35 +51,96 @@ Comandos disponiveis:
     const month = message.split('detailed')[1].replace(/^./, '');
     const customerId = ctx.message.from.id;
 
-    const { date, salary, totalIncome, totalOutcome, totalAvailable, balance } =
-      await this.calculateBalanceService.execute({
-        customerId,
-        month: Number(month),
-      });
+    const {
+      date,
+      salary,
+      totalIncome,
+      totalOutcome,
+      totalAvailable,
+      balance,
+      fixedOutcomeArray,
+    } = await this.calculateBalanceService.execute({
+      customerId,
+      month: Number(month),
+    });
 
-    let response = 'Lista de valores';
+    let response = 'Balance list';
 
     for (const eachBalance of balance) {
-      console.log(eachBalance);
       response += `
-        Tipo: ${eachBalance.type}
-        Valor: ${eachBalance.value}
-        Descrição: ${eachBalance.description ?? ''}
+        Type: ${eachBalance.type}
+        Value: ${eachBalance.value}
+        Description: ${eachBalance.description ?? ''}
         Date: ${new Date(eachBalance.createdAt)}
       `;
     }
 
-    console.log(response);
+    for (const eachfixedOutcome of fixedOutcomeArray) {
+      response += `
+        Type: fixed outcome
+        Value: ${eachfixedOutcome.value}
+        Description: ${eachfixedOutcome.description ?? ''}
+        Date: ${new Date(eachfixedOutcome.createdAt)}
+      `;
+    }
 
     await ctx.reply(`
-      Balance referente a ${date.getMonth() + 1}/${date.getFullYear()}:
-      Salário: ${salary}
+      Balance regarding to ${date.getMonth() + 1}/${date.getFullYear()}:
+      Wage: ${salary}
       Total income: ${totalIncome}
       Total outcome: ${totalOutcome}
       Available: ${totalAvailable}
       `);
 
     await ctx.reply(response);
+  }
+
+  @Command('listfixed')
+  async commandListFixedOutcome(ctx) {
+    const customerId = ctx.message.from.id;
+
+    const list = await this.listFixedOutcomeService.execute({
+      customerId,
+    });
+
+    let response = 'Fixed outcome list:';
+
+    for (const eachList of list) {
+      response += `
+        ID: ${eachList.id}
+        Type: outcome
+        Value: ${eachList.value}
+        Description: ${eachList.description ?? ''}
+        Date: ${new Date(eachList.createdAt)}
+      `;
+    }
+
+    await ctx.reply(response);
+  }
+
+  @Command('fixed')
+  async commandFixedOutcome(ctx) {
+    const message = ctx.message.text.replace(',', '.');
+    const description = message.split('*')[1];
+    const withoutCommand = message.split('fixed')[1].replace(/^./, '');
+    const customerId = ctx.message.from.id;
+
+    const array = withoutCommand.split(' ');
+
+    const { date, balanceResponse } =
+      await this.insertFixedOutcomeService.execute({
+        customerId,
+        description,
+        value: array[0],
+      });
+
+    await ctx.reply(`
+      Balance regarding to ${date.getMonth() + 1}/${date.getFullYear()}:
+      Wage: ${balanceResponse.salary}
+      Total income: ${balanceResponse.totalIncome}
+      Total outcome: ${balanceResponse.totalOutcome}
+      Available: ${balanceResponse.totalAvailable}
+      `);
   }
 
   @Command('balance')
@@ -92,8 +156,8 @@ Comandos disponiveis:
       });
 
     await ctx.reply(`
-      Balance referente a ${date.getMonth() + 1}/${date.getFullYear()}:
-      Salário: ${salary}
+      Balance regarding to ${date.getMonth() + 1}/${date.getFullYear()}:
+      Wage: ${salary}
       Total income: ${totalIncome}
       Total outcome: ${totalOutcome}
       Available: ${totalAvailable}
@@ -125,8 +189,8 @@ Comandos disponiveis:
     await ctx.reply(`Novo registro de recebimento: ${newIncome.value}`);
 
     await ctx.reply(`
-      Balanço referenta à: ${date.getMonth() + 1}/${date.getFullYear()}:
-      Salário: ${balanceResponse.salary}
+      Balance regarding to: ${date.getMonth() + 1}/${date.getFullYear()}:
+      Wage: ${balanceResponse.salary}
       Total income: ${balanceResponse.totalIncome}
       Total outcome: ${balanceResponse.totalOutcome}
       Available: ${balanceResponse.totalAvailable}
@@ -158,8 +222,38 @@ Comandos disponiveis:
     await ctx.reply(`Novo registro de gasto: ${newOutcome.value}`);
 
     await ctx.reply(`
-    Balanço referenta à: ${date.getMonth() + 1}/${date.getFullYear()}:
-      Salário: ${balanceResponse.salary}
+    Balance regarding to: ${date.getMonth() + 1}/${date.getFullYear()}:
+      Wage: ${balanceResponse.salary}
+      Total income: ${balanceResponse.totalIncome}
+      Total outcome: ${balanceResponse.totalOutcome}
+      Available: ${balanceResponse.totalAvailable}
+      `);
+  }
+
+  @Command('unfixoutcome')
+  async commandUnfixOutcome(ctx) {
+    const message = ctx.message.text.replace(',', '.');
+    const id = message.split('unfixoutcome')[1].replace(/^./, '');
+    const customerId = ctx.message.from.id;
+
+    if (!id) {
+      await ctx.reply(
+        `Envie o id do fixed outcome. Ex: /unfixoutcome dasda1sd51a5d1`,
+      );
+      return;
+    }
+
+    const { balanceResponse, date } =
+      await this.deleteFixedOutcomeService.execute({
+        customerId,
+        id,
+      });
+
+    await ctx.reply(`Fixed outcome deleted`);
+
+    await ctx.reply(`
+      Balance regarding to ${date.getMonth() + 1}/${date.getFullYear()}:
+      Wage: ${balanceResponse.salary}
       Total income: ${balanceResponse.totalIncome}
       Total outcome: ${balanceResponse.totalOutcome}
       Available: ${balanceResponse.totalAvailable}
@@ -173,7 +267,7 @@ Comandos disponiveis:
     const customerId = ctx.message.from.id;
 
     if (!salario) {
-      await ctx.reply(`Envie o valor do salário. Ex: /salario 1000`);
+      await ctx.reply(`Envie o valor do Wage. Ex: /salario 1000`);
       return;
     }
 
@@ -182,10 +276,10 @@ Comandos disponiveis:
       salario,
     });
 
-    await ctx.reply(`Novo salário registrado: ${newSalario.value}`);
+    await ctx.reply(`Novo Wage registrado: ${newSalario.value}`);
     await ctx.reply(`
       Balance atualizado:
-      Salário: ${balanceResponse.salary}
+      Wage: ${balanceResponse.salary}
       Total income: ${balanceResponse.totalIncome}
       Total outcome: ${balanceResponse.totalOutcome}
       Available: ${balanceResponse.totalAvailable}
@@ -219,8 +313,8 @@ Comandos disponiveis:
     });
 
     await ctx.reply(`
-    Balanço referenta à: ${date.getMonth() + 1}/${date.getFullYear()}:
-      Salário: ${balanceResponse.salary}
+    Balance regarding to: ${date.getMonth() + 1}/${date.getFullYear()}:
+      Wage: ${balanceResponse.salary}
       Total income: ${balanceResponse.totalIncome}
       Total outcome: ${balanceResponse.totalOutcome}
       Available: ${balanceResponse.totalAvailable}
