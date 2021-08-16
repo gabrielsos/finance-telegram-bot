@@ -183,7 +183,6 @@ Comandos disponiveis:
     });
 
     await ctx.reply(`Novo salário registrado: ${newSalario.value}`);
-
     await ctx.reply(`
       Balance atualizado:
       Salário: ${balanceResponse.salary}
