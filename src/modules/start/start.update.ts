@@ -50,6 +50,24 @@ Comandos disponiveis:
     `);
   }
 
+  @Command('commands')
+  async commands(ctx) {
+    await ctx.reply(`
+      Lista de comandos disponíveis:
+      * reset: Reseta todos os dados, exceto dados de mês salvos pelo comando 'save'
+      * save: Finaliza os dados do mês e salva os valores
+      * detailed: Lista o balanço atualizado do mês
+      * fixed: Adiciona um valor como gasto fixo mensal
+      * listfixed: Lista todos os gastos fixos cadastrados
+      * unfixoutcome: Remove um valor da lista de gastos fixos
+      * balance: Mostra o balanço resumido do mês
+      * income: Registra um novo valor de entrada
+      * outcome: Registra um novo valor de saída
+      * salario: Cadastra o salário para ser usado no balanço mensal
+      * cc: Cadastra uma compra no cartão de crédito com o valor das parcelas a partir do próximo mês
+    `);
+  }
+
   @Command('reset')
   async reset(ctx) {
     const customerId = ctx.message.from.id;
